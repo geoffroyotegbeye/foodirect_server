@@ -1,0 +1,4 @@
+# Ignorer toutes les images uploadées
+*
+!.gitignore
+!menu/.gitkeep
