@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
 const { testConnection } = require('./config/database');
+const { migrate } = require('./config/migrate');
 
 // Charger les variables d'environnement selon l'environnement
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
@@ -15,8 +16,9 @@ const app = express();
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL,
+    process.env.FRONTEND_URL?.replace(/\/$/, ''), // sans slash final
     'http://localhost:3000',
-  ],
+  ].filter(Boolean),
   credentials: true
 }));
 app.use(express.json());
@@ -40,12 +42,16 @@ const menuRoutes = require('./routes/menu.routes');
 const orderRoutes = require('./routes/order.routes');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
+const accompanimentRoutes = require('./routes/accompaniment.routes');
+const settingsRoutes = require('./routes/settings.routes');
 
 // Utiliser les routes
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/accompaniments', accompanimentRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Gestion des erreurs 404
 app.use((req, res) => {
@@ -70,12 +76,10 @@ const startServer = async () => {
   
   if (!dbConnected) {
     console.error('❌ Impossible de démarrer le serveur sans connexion à la base de données');
-    console.log('\n📝 Étapes pour configurer MySQL:');
-    console.log('1. Ouvre phpMyAdmin');
-    console.log('2. Importe le fichier: backend/config/init-db.sql');
-    console.log('3. Vérifie les identifiants dans backend/.env');
     process.exit(1);
   }
+
+  await migrate();
   
   app.listen(PORT, () => {
     console.log(`🚀 Serveur démarré sur le port ${PORT}`);
