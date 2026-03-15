@@ -4,8 +4,9 @@ const path = require('path');
 const dotenv = require('dotenv');
 const { testConnection } = require('./config/database');
 
-// Charger les variables d'environnement
-dotenv.config();
+// Charger les variables d'environnement selon l'environnement
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: envFile });
 
 // Initialiser Express
 const app = express();
