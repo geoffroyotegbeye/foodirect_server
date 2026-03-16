@@ -70,22 +70,31 @@ app.use((err, req, res, next) => {
 // Démarrer le serveur
 const PORT = process.env.PORT || 5000;
 
+const waitForDB = async (retries = 10, delay = 3000) => {
+  for (let i = 1; i <= retries; i++) {
+    const ok = await testConnection();
+    if (ok) return true;
+    console.log(`⏳ Tentative ${i}/${retries} — nouvelle tentative dans ${delay / 1000}s...`);
+    await new Promise(r => setTimeout(r, delay));
+  }
+  return false;
+};
+
 const startServer = async () => {
-  // Tester la connexion à la base de données
-  const dbConnected = await testConnection();
-  
+  // Démarrer le serveur HTTP immédiatement (Railway attend un port ouvert)
+  app.listen(PORT, () => {
+    console.log(`🚀 Serveur démarré sur le port ${PORT}`);
+  });
+
+  // Attendre la DB avec retry
+  const dbConnected = await waitForDB();
   if (!dbConnected) {
-    console.error('❌ Impossible de démarrer le serveur sans connexion à la base de données');
+    console.error('❌ Impossible de se connecter à la base de données après plusieurs tentatives');
     process.exit(1);
   }
 
   await migrate();
-  
-  app.listen(PORT, () => {
-    console.log(`🚀 Serveur démarré sur le port ${PORT}`);
-    console.log(`📍 http://localhost:${PORT}`);
-    console.log(`💾 Base de données: MySQL`);
-  });
+  console.log('✅ Serveur prêt — DB connectée et migrations appliquées');
 };
 
 startServer();

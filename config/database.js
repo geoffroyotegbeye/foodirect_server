@@ -1,6 +1,5 @@
 const mysql = require('mysql2/promise');
 
-// Railway injecte DATABASE_URL, sinon on utilise les variables séparées
 const baseOptions = {
   waitForConnections: true,
   connectionLimit: 10,
@@ -10,20 +9,29 @@ const baseOptions = {
   connectTimeout: 30000,
 };
 
-const poolConfig = process.env.DATABASE_URL
-  ? {
-      ...baseOptions,
-      uri: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    }
-  : {
-      ...baseOptions,
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'foodirect',
-    };
+let poolConfig;
+
+if (process.env.DATABASE_URL) {
+  const url = new URL(process.env.DATABASE_URL);
+  poolConfig = {
+    ...baseOptions,
+    host:     url.hostname,
+    port:     parseInt(url.port) || 3306,
+    user:     url.username,
+    password: url.password,
+    database: url.pathname.replace('/', ''),
+    ssl:      { rejectUnauthorized: false },
+  };
+} else {
+  poolConfig = {
+    ...baseOptions,
+    host:     process.env.DB_HOST || 'localhost',
+    port:     parseInt(process.env.DB_PORT) || 3306,
+    user:     process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'foodirect',
+  };
+}
 
 const pool = mysql.createPool(poolConfig);
 
